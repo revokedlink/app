@@ -10,6 +10,7 @@ class Link {
   final String status; // active, paused, revoked
   final String? created;
   final String? updated;
+  final int views;
 
   Link({
     required this.id,
@@ -22,6 +23,7 @@ class Link {
     required this.status,
     this.created,
     this.updated,
+    this.views = 0,
   });
 
   factory Link.fromJson(Map<String, dynamic> json) {
@@ -36,6 +38,7 @@ class Link {
       status: json['status'] as String? ?? 'active',
       created: json['created'] as String?,
       updated: json['updated'] as String?,
+      views: json['views'] as int? ?? 0,
     );
   }
 
@@ -48,4 +51,32 @@ class Link {
         'workspace': workspace,
         'status': status,
       };
+
+  Link copyWith({
+    String? id,
+    String? slug,
+    String? label,
+    List<String>? sections,
+    List<String>? records,
+    String? user,
+    String? workspace,
+    String? status,
+    String? created,
+    String? updated,
+    int? views,
+  }) {
+    return Link(
+      id: id ?? this.id,
+      slug: slug ?? this.slug,
+      label: label ?? this.label,
+      sections: sections ?? this.sections,
+      records: records ?? this.records,
+      user: user ?? this.user,
+      workspace: workspace ?? this.workspace,
+      status: status ?? this.status,
+      created: created ?? this.created,
+      updated: updated ?? this.updated,
+      views: views ?? this.views,
+    );
+  }
 }

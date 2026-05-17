@@ -18,7 +18,36 @@ class SharesRepository {
       'sort': '-created',
     });
     final items = (data['items'] as List<dynamic>?) ?? [];
-    return items.map((e) => Link.fromJson(e as Map<String, dynamic>)).toList();
+    final links = items.map((e) => Link.fromJson(e as Map<String, dynamic>)).toList();
+
+    try {
+      final viewsData = await _api.get('/api/collections/linkViews/records', queryParams: {
+        'page': '1',
+        'perPage': '500',
+      });
+      final viewItems = (viewsData['items'] as List<dynamic>?) ?? [];
+      final Map<String, int> viewsMap = {};
+      for (var item in viewItems) {
+        if (item is Map<String, dynamic>) {
+          final linkId = item['link'] as String?;
+          final count = item['count'] as int? ?? 0;
+          if (linkId != null) {
+            viewsMap[linkId] = count;
+          }
+        }
+      }
+
+      for (var i = 0; i < links.length; i++) {
+        final linkId = links[i].id;
+        if (viewsMap.containsKey(linkId)) {
+          links[i] = links[i].copyWith(views: viewsMap[linkId]);
+        }
+      }
+    } catch (_) {
+      // Ignore if linkViews cannot be fetched
+    }
+
+    return links;
   }
 
   /// Fetch a single link by unique slug (including relation expansions for sections and records).

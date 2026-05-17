@@ -2168,10 +2168,6 @@ class _SectionCard extends StatelessWidget {
                     const Icon(BootstrapIcons.pen, size: 20),
                     const SizedBox(width: 16),
                     Expanded(child: Text('Rename').semiBold),
-                    Icon(
-                      BootstrapIcons.arrowRight,
-                      color: theme.colorScheme.mutedForeground,
-                    ),
                   ],
                 ),
               ),
@@ -2186,10 +2182,6 @@ class _SectionCard extends StatelessWidget {
                     const Icon(BootstrapIcons.nodePlus, size: 20),
                     const SizedBox(width: 16),
                     Expanded(child: Text('Duplicate').semiBold),
-                    Icon(
-                      BootstrapIcons.arrowRight,
-                      color: theme.colorScheme.mutedForeground,
-                    ),
                   ],
                 ),
               ),
@@ -2212,10 +2204,6 @@ class _SectionCard extends StatelessWidget {
                         'Delete',
                         style: TextStyle(color: theme.colorScheme.destructive),
                       ).semiBold,
-                    ),
-                    Icon(
-                      BootstrapIcons.arrowRight,
-                      color: theme.colorScheme.mutedForeground,
                     ),
                   ],
                 ),

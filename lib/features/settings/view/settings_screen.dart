@@ -1108,7 +1108,6 @@ class _TemplateCardState extends State<_TemplateCard> {
           Align(
             alignment: Alignment.centerLeft,
             child: GhostButton(
-              density: ButtonDensity.compact,
               onPressed: () => setState(() => _isExpanded = !_isExpanded),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

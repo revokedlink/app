@@ -157,6 +157,18 @@ class _SharesScreenState extends State<SharesScreen> {
                         await store.updateShare(share.id, {'status': 'active'});
                       },
                       onRevoke: () => _confirmRevoke(context, store, share),
+                      onDuplicate: () => _showCreateSheet(
+                        context,
+                        store,
+                        authStore,
+                        initialShare: share,
+                      ),
+                      onEdit: () => _showCreateSheet(
+                        context,
+                        store,
+                        authStore,
+                        editShare: share,
+                      ),
                     );
                   },
                 );
@@ -171,10 +183,28 @@ class _SharesScreenState extends State<SharesScreen> {
   void _showCreateSheet(
     BuildContext context,
     SharesStore store,
-    AuthStore authStore,
-  ) {
-    final labelCtrl = TextEditingController();
-    final slugCtrl = TextEditingController(text: _generateRandomSlug(6));
+    AuthStore authStore, {
+    Link? initialShare,
+    Link? editShare,
+  }) async {
+    final isEditing = editShare != null;
+    final labelCtrl = TextEditingController(
+      text: isEditing
+          ? editShare.label
+          : (initialShare != null ? 'Copy of ${initialShare.label}' : ''),
+    );
+
+    // Pre-resolve initial slug so that it is synchronous in the UI, avoiding any race conditions or overwriting user input
+    String initialSlug = '';
+    if (isEditing) {
+      initialSlug = editShare.slug;
+    } else if (initialShare != null) {
+      initialSlug = await store.generateAlternativeSlug(initialShare.slug);
+    } else {
+      initialSlug = _generateRandomSlug(6);
+    }
+
+    final slugCtrl = TextEditingController(text: initialSlug);
 
     String? slugWarning;
     String? suggestedSlug;
@@ -218,143 +248,180 @@ class _SharesScreenState extends State<SharesScreen> {
       }
     }
 
+    if (!context.mounted) return;
+
     openSheet(
       context: context,
       builder: (context) {
         return StatefulBuilder(
-          builder: (ctx, setSheetState) => Container(
-            constraints: const BoxConstraints(maxWidth: 440),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('New Public Share').h4,
-                const SizedBox(height: 4),
-                const Text(
-                  'Create a new share link. You can add sections and records to it in the Vault view.',
-                ).muted.small,
-                const SizedBox(height: 20),
-
-                const Text('Label').semiBold,
-                const SizedBox(height: 6),
-                TextField(
-                  controller: labelCtrl,
-                  placeholder: const Text('e.g. My Shared API Keys'),
-                  onChanged: (text) => setSheetState(() {}),
-                ),
-                const SizedBox(height: 14),
-
-                Row(
-                  children: [
-                    const Text('Slug').semiBold,
-                    const Spacer(),
-                    if (isCheckingSlug)
-                      const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: slugCtrl,
-                        placeholder: const Text('e.g. shared-keys'),
-                        inputFormatters: [SlugInputFormatter()],
-                        onChanged: (text) => validateSlug(text, setSheetState),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    GhostButton(
-                      density: ButtonDensity.icon,
-                      onPressed: () {
-                        // from 6 - 12
-                        final slug = _generateRandomSlug(
-                          Random().nextInt(6) + 6,
-                        );
-                        setSheetState(() {
-                          slugCtrl.text = slug;
-                        });
-                        validateSlug(slug, setSheetState);
-                      },
-                      child: const Icon(
-                        BootstrapIcons.arrowClockwise,
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
-                if (slugWarning != null) ...[
+          builder: (ctx, setSheetState) {
+            return Container(
+              constraints: const BoxConstraints(maxWidth: 440),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    isEditing
+                        ? 'Edit Public Share'
+                        : (initialShare != null
+                              ? 'Duplicate Public Share'
+                              : 'New Public Share'),
+                  ).h4,
                   const SizedBox(height: 4),
                   Text(
-                    slugWarning!,
-                    style: TextStyle(
-                      color: Theme.of(ctx).colorScheme.destructive,
-                    ),
-                  ).xSmall,
-                ],
-                if (suggestedSlug != null) ...[
-                  const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: () {
-                      setSheetState(() {
-                        slugCtrl.text = suggestedSlug!;
-                        slugWarning = null;
-                        suggestedSlug = null;
-                      });
-                    },
-                    child: Text(
-                      'Suggested alternative: ${suggestedSlug!}',
-                      style: TextStyle(
-                        color: Theme.of(ctx).colorScheme.primary,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ).xSmall.semiBold,
-                  ),
-                ],
-                const SizedBox(height: 24),
+                    isEditing
+                        ? 'Update the label of this public share link. The URL slug cannot be changed.'
+                        : (initialShare != null
+                              ? 'Duplicate this public share link with a new name and slug, copying its selected sections and records.'
+                              : 'Create a new share link. You can add sections and records to it in the Vault view.'),
+                  ).muted.small,
+                  const SizedBox(height: 20),
 
-                PrimaryButton(
-                  onPressed:
-                      (slugWarning != null ||
-                          labelCtrl.text.isEmpty ||
-                          slugCtrl.text.isEmpty)
-                      ? null
-                      : () async {
-                          final ok = await store.createShare(
-                            slug: slugCtrl.text.trim(),
-                            label: labelCtrl.text.trim(),
-                            user: authStore.userId,
-                            workspace: authStore.activeWorkspace ?? '',
-                            sections: [],
-                            records: [],
-                            status: 'active',
-                          );
-                          if (ok && ctx.mounted) {
-                            closeSheet(context);
-                            showToast(
-                              context: context,
-                              builder: (context, overlay) => const SurfaceCard(
-                                child: Basic(
-                                  leading: Icon(BootstrapIcons.check, size: 16),
-                                  title: Text(
-                                    'Public share link created successfully',
+                  const Text('Label').semiBold,
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: labelCtrl,
+                    placeholder: const Text('e.g. My Shared API Keys'),
+                    onChanged: (text) => setSheetState(() {}),
+                  ),
+                  const SizedBox(height: 14),
+
+                  Row(
+                    children: [
+                      const Text('Slug').semiBold,
+                      const Spacer(),
+                      if (isCheckingSlug)
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: slugCtrl,
+                          placeholder: const Text('e.g. shared-keys'),
+                          enabled: !isEditing,
+                          inputFormatters: [SlugInputFormatter()],
+                          onChanged: (text) =>
+                              validateSlug(text, setSheetState),
+                        ),
+                      ),
+                      if (!isEditing) ...[
+                        const SizedBox(width: 8),
+                        GhostButton(
+                          density: ButtonDensity.icon,
+                          onPressed: () {
+                            final slug = _generateRandomSlug(
+                              Random().nextInt(6) + 6,
+                            );
+                            setSheetState(() {
+                              slugCtrl.text = slug;
+                            });
+                            validateSlug(slug, setSheetState);
+                          },
+                          child: const Icon(
+                            BootstrapIcons.arrowClockwise,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (slugWarning != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      slugWarning!,
+                      style: TextStyle(
+                        color: Theme.of(ctx).colorScheme.destructive,
+                      ),
+                    ).xSmall,
+                  ],
+                  if (suggestedSlug != null) ...[
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () {
+                        setSheetState(() {
+                          slugCtrl.text = suggestedSlug!;
+                          slugWarning = null;
+                          suggestedSlug = null;
+                        });
+                      },
+                      child: Text(
+                        'Suggested alternative: ${suggestedSlug!}',
+                        style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ).xSmall.semiBold,
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+
+                  PrimaryButton(
+                    onPressed:
+                        (slugWarning != null ||
+                            labelCtrl.text.isEmpty ||
+                            slugCtrl.text.isEmpty ||
+                            isCheckingSlug)
+                        ? null
+                        : () async {
+                            bool ok;
+                            if (isEditing) {
+                              ok = await store.updateShare(editShare.id, {
+                                'label': labelCtrl.text.trim(),
+                              });
+                            } else {
+                              ok = await store.createShare(
+                                slug: slugCtrl.text.trim(),
+                                label: labelCtrl.text.trim(),
+                                user: authStore.userId,
+                                workspace: authStore.activeWorkspace ?? '',
+                                sections: initialShare?.sections ?? [],
+                                records: initialShare?.records ?? [],
+                                status: 'active',
+                              );
+                            }
+                            if (ok && ctx.mounted) {
+                              closeSheet(context);
+                              showToast(
+                                context: context,
+                                builder: (context, overlay) => SurfaceCard(
+                                  child: Basic(
+                                    leading: const Icon(
+                                      BootstrapIcons.check,
+                                      size: 16,
+                                    ),
+                                    title: Text(
+                                      isEditing
+                                          ? 'Public share link updated successfully'
+                                          : (initialShare != null
+                                                ? 'Public share link duplicated successfully'
+                                                : 'Public share link created successfully'),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }
-                        },
-                  child: const Text('Create Public Share'),
-                ),
-              ],
-            ),
-          ),
+                              );
+                            }
+                          },
+                    child: Text(
+                      isEditing
+                          ? 'Save Changes'
+                          : (initialShare != null
+                                ? 'Duplicate Public Share'
+                                : 'Create Public Share'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
       position: OverlayPosition.bottom,
@@ -448,6 +515,8 @@ class _ShareCard extends StatelessWidget {
   final VoidCallback onPause;
   final VoidCallback onActivate;
   final VoidCallback onRevoke;
+  final VoidCallback onDuplicate;
+  final VoidCallback onEdit;
 
   const _ShareCard({
     required this.share,
@@ -455,6 +524,8 @@ class _ShareCard extends StatelessWidget {
     required this.onPause,
     required this.onActivate,
     required this.onRevoke,
+    required this.onDuplicate,
+    required this.onEdit,
   });
 
   void _showShareOptionsSheet(BuildContext context) {
@@ -526,6 +597,38 @@ class _ShareCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
+              // Duplicate Option
+              GhostButton(
+                onPressed: () {
+                  closeSheet(context);
+                  onDuplicate();
+                },
+                child: Row(
+                  children: [
+                    const Icon(BootstrapIcons.nodePlus, size: 20),
+                    const SizedBox(width: 16),
+                    Expanded(child: Text('Duplicate').semiBold),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Edit Details Option
+              GhostButton(
+                onPressed: () {
+                  closeSheet(context);
+                  onEdit();
+                },
+                child: Row(
+                  children: [
+                    const Icon(BootstrapIcons.pencil, size: 20),
+                    const SizedBox(width: 16),
+                    Expanded(child: Text('Edit').semiBold),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
               // Pause/Activate Status Transition Option
               if (isActive) ...[
                 GhostButton(
@@ -591,9 +694,6 @@ class _ShareCard extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
 
-              const Divider(),
-              const SizedBox(height: 8),
-
               // Delete Option
               GhostButton(
                 onPressed: () {
@@ -610,7 +710,7 @@ class _ShareCard extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        'Delete',
+                        'Revoke & Delete',
                         style: TextStyle(color: theme.colorScheme.destructive),
                       ).semiBold,
                     ),
@@ -644,6 +744,8 @@ class _ShareCard extends StatelessWidget {
                         Text(share.label).semiBold,
                         const SizedBox(width: 8),
                         _buildStatusBadge(theme),
+                        const SizedBox(width: 8),
+                        _buildViewsBadge(theme),
                       ],
                     ),
                     const SizedBox(height: 2),
@@ -695,6 +797,32 @@ class _ShareCard extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewsBadge(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.muted,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: theme.colorScheme.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            BootstrapIcons.eye,
+            size: 10,
+            color: theme.colorScheme.mutedForeground,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${share.views} ${share.views == 1 ? 'view' : 'views'}',
+            style: TextStyle(color: theme.colorScheme.mutedForeground),
+          ).xSmall.medium,
         ],
       ),
     );

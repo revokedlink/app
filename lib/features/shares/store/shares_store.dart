@@ -76,7 +76,7 @@ abstract class _SharesStore with Store {
       final updated = await _repository.update(id, updates);
       final idx = shares.indexWhere((s) => s.id == id);
       if (idx != -1) {
-        shares[idx] = updated;
+        shares[idx] = updated.copyWith(views: shares[idx].views);
       }
       return true;
     } catch (e) {
