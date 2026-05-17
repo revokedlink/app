@@ -2446,111 +2446,107 @@ class _RecordCardState extends State<_RecordCard> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.isSelectableMode) ...[
-                Checkbox(
-                  state: widget.isSelected
-                      ? CheckboxState.checked
-                      : CheckboxState.unchecked,
-                  onChanged: (state) => widget.onToggleSelect?.call(
-                    state == CheckboxState.checked,
-                  ),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(widget.record.label).semiBold,
-                              const SizedBox(height: 2),
-                              Text(widget.record.key).mono.muted.xSmall,
-                            ],
-                          ),
-                        ),
-                        SecondaryBadge(child: Text(widget.record.type)),
-                        if (isHiddenFormat) ...[
-                          const SizedBox(width: 6),
-                          const OutlineBadge(child: Text('hidden')),
-                        ],
-                        if (!widget.isSelectableMode) ...[
-                          const SizedBox(width: 8),
-                          GhostButton(
-                            density: ButtonDensity.icon,
-                            onPressed: widget.onCopy,
-                            child: const Icon(BootstrapIcons.copy, size: 14),
-                          ),
-                          GhostButton(
-                            density: ButtonDensity.icon,
-                            onPressed: () => _showRecordOptionsSheet(context),
-                            child: const Icon(
-                              BootstrapIcons.threeDotsVertical,
-                              size: 14,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (!widget.isSelectableMode) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.muted,
-                          borderRadius: BorderRadius.circular(theme.radiusSm),
-                        ),
-                        child: Row(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.isSelectableMode) ...[
+              Checkbox(
+                state: widget.isSelected
+                    ? CheckboxState.checked
+                    : CheckboxState.unchecked,
+                onChanged: (state) =>
+                    widget.onToggleSelect?.call(state == CheckboxState.checked),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(
-                                _isObscured
-                                    ? '••••••••••••••••'
-                                    : widget.record.value,
-                              ).mono.muted.xSmall,
-                            ),
-                            if (isHiddenFormat) ...[
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isObscured = !_isObscured;
-                                  });
-                                },
-                                child: MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: Icon(
-                                    _isObscured
-                                        ? BootstrapIcons.eye
-                                        : BootstrapIcons.eyeSlash,
-                                    size: 14,
-                                    color: theme.colorScheme.mutedForeground,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            Text(widget.record.label).semiBold,
+                            const SizedBox(height: 2),
+                            Text(widget.record.key).mono.muted.xSmall,
                           ],
                         ),
                       ),
+                      SecondaryBadge(child: Text(widget.record.type)),
+                      if (isHiddenFormat) ...[
+                        const SizedBox(width: 6),
+                        const OutlineBadge(child: Text('hidden')),
+                      ],
+                      if (!widget.isSelectableMode) ...[
+                        const SizedBox(width: 8),
+                        GhostButton(
+                          density: ButtonDensity.icon,
+                          onPressed: widget.onCopy,
+                          child: const Icon(BootstrapIcons.copy, size: 14),
+                        ),
+                        GhostButton(
+                          density: ButtonDensity.icon,
+                          onPressed: () => _showRecordOptionsSheet(context),
+                          child: const Icon(
+                            BootstrapIcons.threeDotsVertical,
+                            size: 14,
+                          ),
+                        ),
+                      ],
                     ],
+                  ),
+                  if (!widget.isSelectableMode) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.muted,
+                        borderRadius: BorderRadius.circular(theme.radiusSm),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _isObscured
+                                  ? '••••••••••••••••'
+                                  : widget.record.value,
+                            ).mono.muted.xSmall,
+                          ),
+                          if (isHiddenFormat) ...[
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isObscured = !_isObscured;
+                                });
+                              },
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: Icon(
+                                  _isObscured
+                                      ? BootstrapIcons.eye
+                                      : BootstrapIcons.eyeSlash,
+                                  size: 14,
+                                  color: theme.colorScheme.mutedForeground,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
