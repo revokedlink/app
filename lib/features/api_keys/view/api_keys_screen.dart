@@ -2,9 +2,11 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
 import '../store/api_keys_store.dart';
 import '../../auth/store/auth_store.dart';
+import '../../../core/router/app_router.dart';
 
 class ApiKeysScreen extends StatefulWidget {
   const ApiKeysScreen({super.key});
@@ -27,93 +29,115 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
     final store = context.read<ApiKeysStore>();
     final authStore = context.read<AuthStore>();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final outerPad = isMobile ? 16.0 : 24.0;
+    final horizontalPad = EdgeInsets.symmetric(horizontal: outerPad);
+
+    return Scaffold(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: horizontalPad,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                Row(
                   children: [
-                    const Text('API Keys').h4,
-                    const Text(
-                      'Manage programmatic access to your workspace.',
-                    ).muted.small,
-                  ],
-                ),
-              ),
-              PrimaryButton(
-                onPressed: () => _showCreateSheet(context, store, authStore),
-                leading: const Icon(BootstrapIcons.plus, size: 16),
-                child: const Text('New Key'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-
-          Expanded(
-            child: Observer(
-              builder: (_) {
-                if (store.isLoading && store.apiKeys.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(size: 20),
-                  );
-                }
-
-                if (store.errorMessage != null) {
-                  return Center(
-                    child: Alert(
-                      destructive: true,
-                      leading: const Icon(BootstrapIcons.exclamation),
-                      title: const Text('Failed to load API keys'),
-                      content: Text(store.errorMessage!),
-                      trailing: GhostButton(
-                        onPressed: store.loadApiKeys,
-                        child: const Text('Retry'),
+                    GhostButton(
+                      density: ButtonDensity.icon,
+                      onPressed: () => context.go(AppRoutes.settings),
+                      child: const Icon(BootstrapIcons.chevronLeft, size: 20),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('API Keys').h4,
+                          const Text(
+                            'Manage programmatic access to your workspace.',
+                          ).muted.small,
+                        ],
                       ),
                     ),
-                  );
-                }
-
-                if (store.apiKeys.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          BootstrapIcons.lock,
-                          size: 40,
-                          color: Theme.of(context).colorScheme.mutedForeground,
-                        ),
-                        const SizedBox(height: 12),
-                        const Text('No API keys').semiBold,
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Create a key for programmatic access.',
-                        ).muted.small,
-                      ],
+                    PrimaryButton(
+                      onPressed: () =>
+                          _showCreateSheet(context, store, authStore),
+                      child: const Icon(BootstrapIcons.plus, size: 16),
                     ),
-                  );
-                }
-
-                return ListView.separated(
-                  itemCount: store.apiKeys.length,
-                  separatorBuilder: (_, i) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final key = store.apiKeys[index];
-                    return _ApiKeyCard(
-                      apiKey: key,
-                      onRevoke: () => _confirmRevoke(context, store, key.id),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: horizontalPad,
+              child: Observer(
+                builder: (_) {
+                  if (store.isLoading && store.apiKeys.isEmpty) {
+                    return const Center(
+                      child: CircularProgressIndicator(size: 20),
                     );
-                  },
-                );
-              },
+                  }
+
+                  if (store.errorMessage != null) {
+                    return Center(
+                      child: Alert(
+                        destructive: true,
+                        leading: const Icon(BootstrapIcons.exclamation),
+                        title: const Text('Failed to load API keys'),
+                        content: Text(store.errorMessage!),
+                        trailing: GhostButton(
+                          onPressed: store.loadApiKeys,
+                          child: const Text('Retry'),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (store.apiKeys.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            BootstrapIcons.key,
+                            size: 40,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.mutedForeground,
+                          ),
+                          const SizedBox(height: 12),
+                          const Text('No API keys').semiBold,
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Create a key for programmatic access.',
+                          ).muted.small,
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    itemCount: store.apiKeys.length,
+                    separatorBuilder: (_, i) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final key = store.apiKeys[index];
+                      return _ApiKeyCard(
+                        apiKey: key,
+                        onRevoke: () => _confirmRevoke(context, store, key.id),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -165,7 +189,7 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
                 const SizedBox(height: 6),
                 TextField(
                   controller: labelCtrl,
-                  placeholder: Text('Production Key'),
+                  placeholder: const Text('Production Key'),
                 ),
                 const SizedBox(height: 16),
 
@@ -216,7 +240,7 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
                       scopes: selectedScopes.toList(),
                     );
                     if (ok && ctx.mounted) {
-                      closeDrawer(context);
+                      closeSheet(context);
                       final token = store.lastCreatedPlainToken;
                       if (token != null) {
                         showDialog(

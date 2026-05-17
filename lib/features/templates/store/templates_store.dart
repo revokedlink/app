@@ -19,6 +19,18 @@ class TemplatesStore {
   String? get errorMessage => _errorMessage.value;
   set errorMessage(String? val) => Action(() { _errorMessage.value = val; })();
 
+  final _expandedTemplates = ObservableSet<String>();
+  bool isTemplateExpanded(String id) => _expandedTemplates.contains(id);
+  void toggleTemplateExpanded(String id) {
+    Action(() {
+      if (_expandedTemplates.contains(id)) {
+        _expandedTemplates.remove(id);
+      } else {
+        _expandedTemplates.add(id);
+      }
+    })();
+  }
+
   Future<void> loadTemplates(String workspaceId) async {
     isLoading = true;
     errorMessage = null;

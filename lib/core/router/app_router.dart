@@ -8,6 +8,8 @@ import '../../features/settings/view/settings_screen.dart';
 import '../../features/vault/view/vault_screen.dart';
 import '../../features/shares/view/shares_screen.dart';
 import '../../features/shares/view/public_share_screen.dart';
+import '../../features/api_keys/view/api_keys_screen.dart';
+import '../../features/templates/view/templates_screen.dart';
 
 abstract class AppRoutes {
   static const login = '/login';
@@ -15,6 +17,8 @@ abstract class AppRoutes {
   static const vault = '/vault';
   static const shares = '/shares';
   static const settings = '/settings';
+  static const apiKeys = '/settings/api-keys';
+  static const templates = '/settings/templates';
   static const share = '/share/:slug';
 }
 
@@ -76,6 +80,18 @@ class AppRouter {
               path: AppRoutes.settings,
               pageBuilder: (context, state) =>
                   const NoTransitionPage(child: SettingsScreen()),
+              routes: [
+                GoRoute(
+                  path: 'api-keys',
+                  pageBuilder: (context, state) =>
+                      const NoTransitionPage(child: ApiKeysScreen()),
+                ),
+                GoRoute(
+                  path: 'templates',
+                  pageBuilder: (context, state) =>
+                      const NoTransitionPage(child: TemplatesScreen()),
+                ),
+              ],
             ),
           ],
         ),
