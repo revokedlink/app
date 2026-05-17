@@ -142,31 +142,28 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            BootstrapIcons.share,
-                            color: theme.colorScheme.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(label).h3.semiBold),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'This is a read-only secure view of shared items from a Revoked vault.',
-                        style: TextStyle(
-                          color: theme.colorScheme.mutedForeground,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          BootstrapIcons.share,
+                          color: theme.colorScheme.primary,
+                          size: 20,
                         ),
-                      ).small,
-                    ],
-                  ),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(label).h3.semiBold),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'This is a read-only secure view of shared items from a Revoked vault.',
+                      style: TextStyle(
+                        color: theme.colorScheme.mutedForeground,
+                      ),
+                    ).small,
+                  ],
                 ),
               ),
               const SizedBox(height: 24),

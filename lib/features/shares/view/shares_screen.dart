@@ -16,6 +16,8 @@ import '../../auth/store/auth_store.dart';
 import '../../vault/store/vault_store.dart';
 import '../../../core/models/link.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/widgets/data_table/filter_bar.dart';
+import '../../../core/widgets/data_table/data_table_controller.dart';
 
 class SharesScreen extends StatefulWidget {
   const SharesScreen({super.key});
@@ -25,13 +27,40 @@ class SharesScreen extends StatefulWidget {
 }
 
 class _SharesScreenState extends State<SharesScreen> {
+  late DataTableController<Link> _tableController;
+
   @override
   void initState() {
     super.initState();
+    final store = context.read<SharesStore>();
+
+    _tableController = DataTableController<Link>(
+      getSourceItems: () => store.shares.toList(),
+      fieldGetters: {
+        'label': (l) => l.label,
+        'slug': (l) => l.slug,
+        'status': (l) => l.status,
+        'created': (l) => l.created ?? '',
+      },
+      defaultSort: 'created_desc',
+    );
+    _tableController.addListener(_onTableControllerChanged);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SharesStore>().loadShares();
+      store.loadShares();
       context.read<VaultStore>().loadRecords();
     });
+  }
+
+  void _onTableControllerChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _tableController.removeListener(_onTableControllerChanged);
+    _tableController.dispose();
+    super.dispose();
   }
 
   String _generateRandomSlug(int length) {
@@ -69,7 +98,20 @@ class _SharesScreenState extends State<SharesScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Public Shares').h4,
+                        Row(
+                          children: [
+                            const Text('Public Shares').h4,
+                            const SizedBox(width: 8),
+                            Observer(
+                              builder: (_) => SecondaryBadge(
+                                child: Text(
+                                  '${store.shares.length} links',
+                                ).xSmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
                         const Text(
                           'Create and manage public unauthenticated sharing links.',
                         ).muted.small,
@@ -86,6 +128,14 @@ class _SharesScreenState extends State<SharesScreen> {
                 ],
               ),
               const SizedBox(height: 16),
+              FilterBar<Link>(
+                controller: _tableController,
+                columns: const [
+                  DataTableColumn(value: 'label', label: 'Label'),
+                  DataTableColumn(value: 'slug', label: 'Slug'),
+                  DataTableColumn(value: 'status', label: 'Status'),
+                ],
+              ),
             ],
           ),
         ),
@@ -137,16 +187,26 @@ class _SharesScreenState extends State<SharesScreen> {
                   );
                 }
 
+                if (_tableController.filteredItems.isEmpty &&
+                    store.shares.isNotEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 24),
+                      child: const Text('No shares match your filters.').muted,
+                    ),
+                  );
+                }
+
                 return ListView.separated(
                   padding: EdgeInsets.only(
                     left: innerPad,
                     right: innerPad,
                     bottom: 32,
                   ),
-                  itemCount: store.shares.length,
+                  itemCount: _tableController.filteredItems.length,
                   separatorBuilder: (_, i) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
-                    final share = store.shares[index];
+                    final share = _tableController.filteredItems[index];
                     return _ShareCard(
                       share: share,
                       onDelete: () => _confirmDelete(context, store, share.id),
@@ -734,6 +794,7 @@ class _ShareCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
@@ -771,13 +832,6 @@ class _ShareCard extends StatelessWidget {
                   ],
                 ),
               ),
-              GhostButton(
-                onPressed: () {
-                  context.go('${AppRoutes.vault}?shareFilterId=${share.id}');
-                },
-                child: Icon(BootstrapIcons.funnel),
-              ),
-              Gap(8),
               if (!isRevoked) ...[
                 // Primary Edit Selection Button
                 GhostButton(
@@ -796,6 +850,22 @@ class _ShareCard extends StatelessWidget {
                 child: const Icon(BootstrapIcons.threeDotsVertical, size: 16),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          GhostButton(
+            onPressed: () {
+              context.go('${AppRoutes.vault}?shareFilterId=${share.id}');
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(BootstrapIcons.funnel, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  '${share.sections.length} Sections • ${share.records.length} Records',
+                ).small,
+              ],
+            ),
           ),
         ],
       ),
