@@ -13,11 +13,15 @@ class TemplatesStore {
 
   final _isLoading = Observable(false);
   bool get isLoading => _isLoading.value;
-  set isLoading(bool val) => Action(() { _isLoading.value = val; })();
+  set isLoading(bool val) => Action(() {
+    _isLoading.value = val;
+  })();
 
   final _errorMessage = Observable<String?>(null);
   String? get errorMessage => _errorMessage.value;
-  set errorMessage(String? val) => Action(() { _errorMessage.value = val; })();
+  set errorMessage(String? val) => Action(() {
+    _errorMessage.value = val;
+  })();
 
   final _expandedTemplates = ObservableSet<String>();
   bool isTemplateExpanded(String id) => _expandedTemplates.contains(id);

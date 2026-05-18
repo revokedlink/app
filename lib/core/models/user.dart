@@ -34,11 +34,11 @@ class User {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'email': email,
-        'verified': verified,
-        'avatar': avatar,
-        'activeWorkspace': activeWorkspace,
-        'activeRole': activeRole,
-      };
+    'id': id,
+    'email': email,
+    'verified': verified,
+    'avatar': avatar,
+    'activeWorkspace': activeWorkspace,
+    'activeRole': activeRole,
+  };
 }

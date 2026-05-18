@@ -13,10 +13,7 @@ class SettingsRepository {
   Future<List<WorkspaceMember>> getUserMemberships(String userId) async {
     final data = await _api.get(
       '/api/collections/${AppConfig.workspaceMembersCollection}/records',
-      queryParams: {
-        'filter': 'user = "$userId"',
-        'sort': '-created',
-      },
+      queryParams: {'filter': 'user = "$userId"', 'sort': '-created'},
     );
     final items = (data['items'] as List<dynamic>?) ?? [];
     return items
@@ -48,13 +45,14 @@ class SettingsRepository {
   }
 
   /// Switch the user's active workspace.
-  Future<void> switchWorkspace(String userId, String workspaceId, String role) async {
+  Future<void> switchWorkspace(
+    String userId,
+    String workspaceId,
+    String role,
+  ) async {
     await _api.patch(
       '/api/collections/${AppConfig.usersCollection}/records/$userId',
-      body: {
-        'activeWorkspace': workspaceId,
-        'activeRole': role,
-      },
+      body: {'activeWorkspace': workspaceId, 'activeRole': role},
     );
   }
 
@@ -62,23 +60,20 @@ class SettingsRepository {
   Future<Workspace> createWorkspace(String name, String slug) async {
     final data = await _api.post(
       '/api/collections/${AppConfig.workspacesCollection}/records',
-      body: {
-        'name': name,
-        'slug': slug,
-      },
+      body: {'name': name, 'slug': slug},
     );
     return Workspace.fromJson(data as Map<String, dynamic>);
   }
 
   /// Add a user to a workspace.
-  Future<WorkspaceMember> addWorkspaceMember(String workspaceId, String userId, String role) async {
+  Future<WorkspaceMember> addWorkspaceMember(
+    String workspaceId,
+    String userId,
+    String role,
+  ) async {
     final data = await _api.post(
       '/api/collections/${AppConfig.workspaceMembersCollection}/records',
-      body: {
-        'workspace': workspaceId,
-        'user': userId,
-        'role': role,
-      },
+      body: {'workspace': workspaceId, 'user': userId, 'role': role},
     );
     return WorkspaceMember.fromJson(data as Map<String, dynamic>);
   }

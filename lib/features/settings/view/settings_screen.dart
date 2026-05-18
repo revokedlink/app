@@ -8,6 +8,8 @@ import '../../../core/router/app_router.dart';
 import '../store/settings_store.dart';
 import '../../auth/store/auth_store.dart';
 
+import '../../../core/di/service_locator.dart';
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -23,6 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final authStore = context.read<AuthStore>();
       if (authStore.isAuthenticated) {
         context.read<SettingsStore>().loadWorkspaces(authStore.userId);
+        ServiceLocator.identitiesStore.loadIdentities();
       }
     });
   }
@@ -110,7 +113,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   Text(authStore.userEmail).semiBold,
                                   const SizedBox(height: 4),
                                   if (settingsStore.isLoading)
-                                    const Text('Loading workspaces...').muted.xSmall
+                                    const Text(
+                                      'Loading workspaces...',
+                                    ).muted.xSmall
                                   else if (activeWorkspace != null)
                                     Row(
                                       children: [
@@ -140,7 +145,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           ),
                                         ),
                                         const SizedBox(width: 6),
-                                        const Text('No Active Workspace').muted.xSmall,
+                                        const Text(
+                                          'No Active Workspace',
+                                        ).muted.xSmall,
                                       ],
                                     ),
                                 ],
@@ -171,83 +178,257 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         )
                       else
                         Column(
-                          children: List.generate(settingsStore.workspaces.length, (index) {
-                            final ws = settingsStore.workspaces[index];
-                            final isActive = activeWorkspaceId == ws.id;
-                            final role = settingsStore.getRoleForWorkspace(ws.id);
-                            return Column(
-                              children: [
-                                if (index > 0)
-                                  const Divider(height: 1, indent: 16, endIndent: 16),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Avatar(
-                                        initials: ws.name.isNotEmpty
-                                            ? ws.name[0].toUpperCase()
-                                            : '?',
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(ws.name).semiBold,
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              '${ws.slug} · $role',
-                                            ).mono().muted.xSmall,
-                                          ],
+                          children: List.generate(
+                            settingsStore.workspaces.length,
+                            (index) {
+                              final ws = settingsStore.workspaces[index];
+                              final isActive = activeWorkspaceId == ws.id;
+                              final role = settingsStore.getRoleForWorkspace(
+                                ws.id,
+                              );
+                              return Column(
+                                children: [
+                                  if (index > 0)
+                                    const Divider(
+                                      height: 1,
+                                      indent: 16,
+                                      endIndent: 16,
+                                    ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Avatar(
+                                          initials: ws.name.isNotEmpty
+                                              ? ws.name[0].toUpperCase()
+                                              : '?',
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      if (isActive)
-                                        SecondaryBadge(
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Container(
-                                                width: 6,
-                                                height: 6,
-                                                decoration: const BoxDecoration(
-                                                  color: Color(0xFF22C55E),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 5),
-                                              const Text('Active').xSmall,
+                                              Text(ws.name).semiBold,
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                '${ws.slug} · $role',
+                                              ).mono().muted.xSmall,
                                             ],
                                           ),
-                                        )
-                                      else
-                                        OutlineButton(
-                                          density: ButtonDensity.compact,
-                                          onPressed: () async {
-                                            final ok = await settingsStore
-                                                .switchWorkspace(
-                                                  authStore.userId,
-                                                  ws.id,
-                                                );
-                                            if (ok) {
-                                              await authStore.initialize();
-                                            }
-                                          },
-                                          child: const Text('Switch'),
                                         ),
-                                    ],
+                                        const SizedBox(width: 12),
+                                        if (isActive)
+                                          SecondaryBadge(
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  width: 6,
+                                                  height: 6,
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        color: Color(
+                                                          0xFF22C55E,
+                                                        ),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                ),
+                                                const SizedBox(width: 5),
+                                                const Text('Active').xSmall,
+                                              ],
+                                            ),
+                                          )
+                                        else
+                                          OutlineButton(
+                                            density: ButtonDensity.compact,
+                                            onPressed: () async {
+                                              final ok = await settingsStore
+                                                  .switchWorkspace(
+                                                    authStore.userId,
+                                                    ws.id,
+                                                  );
+                                              if (ok) {
+                                                await authStore.initialize();
+                                              }
+                                            },
+                                            child: const Text('Switch'),
+                                          ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            );
-                          }),
+                                ],
+                              );
+                            },
+                          ),
                         ),
                     ],
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Cryptographic Identities Section
+              Padding(
+                padding: horizontalPad,
+                child: _SectionHeader(
+                  title: 'Cryptographic Identities',
+                  subtitle:
+                      'Manage anonymous profile identities for peer-to-peer sharing.',
+                  action: PrimaryButton(
+                    onPressed: () => _showCreateIdentityDialog(context),
+                    leading: const Icon(BootstrapIcons.plus, size: 14),
+                    child: const Text('New Identity'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: horizontalPad,
+                child: Observer(
+                  builder: (context) {
+                    final store = ServiceLocator.identitiesStore;
+                    if (store.isLoading && store.identities.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator(size: 20),
+                        ),
+                      );
+                    }
+
+                    if (store.identities.isEmpty) {
+                      return _EmptyState(
+                        icon: BootstrapIcons.personBoundingBox,
+                        label: 'No identities generated',
+                        hint:
+                            'Create an identity to share vault items securely.',
+                      );
+                    }
+
+                    return Card(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: List.generate(store.identities.length, (
+                          index,
+                        ) {
+                          final identity = store.identities[index];
+                          final shortKey = identity.publicKey.length > 25
+                              ? '${identity.publicKey.substring(0, 12)}...${identity.publicKey.substring(identity.publicKey.length - 12)}'
+                              : identity.publicKey;
+
+                          return Column(
+                            children: [
+                              if (index > 0)
+                                const Divider(
+                                  height: 1,
+                                  indent: 16,
+                                  endIndent: 16,
+                                ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Avatar(
+                                      initials: identity.name.isNotEmpty
+                                          ? identity.name[0].toUpperCase()
+                                          : '?',
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(identity.name).semiBold,
+                                              if (identity.isPrimary) ...[
+                                                const SizedBox(width: 8),
+                                                SecondaryBadge(
+                                                  child: const Text(
+                                                    'Primary Name',
+                                                  ).xSmall,
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            'Key: $shortKey',
+                                          ).mono().muted.xSmall,
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    if (!identity.isPrimary)
+                                      OutlineButton(
+                                        density: ButtonDensity.compact,
+                                        onPressed: () =>
+                                            store.togglePrimary(identity.id),
+                                        child: const Text('Set Primary'),
+                                      ),
+                                    const SizedBox(width: 6),
+                                    IconButton.ghost(
+                                      density: ButtonDensity.compact,
+                                      icon: const Icon(
+                                        BootstrapIcons.copy,
+                                        size: 14,
+                                      ),
+                                      onPressed: () {
+                                        Clipboard.setData(
+                                          ClipboardData(
+                                            text: identity.publicKey,
+                                          ),
+                                        );
+                                        showToast(
+                                          context: context,
+                                          builder: (context, overlay) =>
+                                              const SurfaceCard(
+                                                child: Basic(
+                                                  leading: Icon(
+                                                    BootstrapIcons.check,
+                                                    size: 16,
+                                                  ),
+                                                  title: Text(
+                                                    'Public key copied to clipboard',
+                                                  ),
+                                                ),
+                                              ),
+                                        );
+                                      },
+                                    ),
+                                    if (!identity.isPrimary) ...[
+                                      const SizedBox(width: 6),
+                                      IconButton.ghost(
+                                        density: ButtonDensity.compact,
+                                        onPressed: () =>
+                                            store.deleteIdentity(identity.id),
+                                        icon: Icon(
+                                          BootstrapIcons.trash,
+                                          size: 14,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.destructive,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ),
+                    );
+                  },
                 ),
               ),
 
@@ -277,7 +458,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -301,7 +484,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             Icon(
                               BootstrapIcons.chevronRight,
-                              color: Theme.of(context).colorScheme.mutedForeground,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.mutedForeground,
                               size: 16,
                             ),
                           ],
@@ -319,7 +504,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -343,7 +530,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             Icon(
                               BootstrapIcons.chevronRight,
-                              color: Theme.of(context).colorScheme.mutedForeground,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.mutedForeground,
                               size: 16,
                             ),
                           ],
@@ -459,6 +648,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: const Text('Create Workspace'),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCreateIdentityDialog(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    var isPrimary = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('New Cryptographic Identity').h4,
+          content: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Profile Name').semiBold,
+                const SizedBox(height: 6),
+                TextField(
+                  controller: nameCtrl,
+                  placeholder: const Text(
+                    'e.g. Personal Profile, Anonymous Recruiter',
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Checkbox(
+                  state: isPrimary
+                      ? CheckboxState.checked
+                      : CheckboxState.unchecked,
+                  onChanged: (state) {
+                    setState(() {
+                      isPrimary = state == CheckboxState.checked;
+                    });
+                  },
+                  trailing: const Text('Mark as Primary Name').small,
+                ),
+                const SizedBox(height: 20),
+                PrimaryButton(
+                  onPressed: () async {
+                    if (nameCtrl.text.isEmpty) return;
+                    final ok = await ServiceLocator.identitiesStore
+                        .createIdentity(
+                          name: nameCtrl.text.trim(),
+                          isPrimary: isPrimary,
+                        );
+                    if (ok && context.mounted) {
+                      Navigator.of(context).pop();
+                      showToast(
+                        context: context,
+                        builder: (context, overlay) => const SurfaceCard(
+                          child: Basic(
+                            leading: Icon(BootstrapIcons.check, size: 16),
+                            title: Text('Identity generated successfully'),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Generate Cryptographic Keys'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

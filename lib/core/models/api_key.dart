@@ -42,9 +42,9 @@ class ApiKey {
   }
 
   Map<String, dynamic> toJson() => {
-        'label': label,
-        'user': user,
-        'workspace': workspace,
-        'scopes': scopes,
-      };
+    'label': label,
+    'user': user,
+    'workspace': workspace,
+    'scopes': scopes,
+  };
 }

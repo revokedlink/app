@@ -273,7 +273,7 @@ class _FilterBarState<T> extends State<FilterBar<T>> {
             builder: (context, child) {
               final activeSort = widget.controller.sortBy;
 
-              return Container(
+              return SizedBox(
                 width: 260,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

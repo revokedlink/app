@@ -14,6 +14,11 @@ import '../../../core/models/link.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/data_table/filter_bar.dart';
 import '../../../core/widgets/data_table/data_table_controller.dart';
+import '../../../core/widgets/app_screen_header.dart';
+import '../../../core/widgets/app_empty_state.dart';
+import '../../../core/widgets/text_formatters.dart';
+import '../../../core/design/spacing.dart';
+import 'record_create_sheet.dart';
 
 class VaultScreen extends StatefulWidget {
   final String? editingShareId;
@@ -86,54 +91,40 @@ class _VaultScreenState extends State<VaultScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Text('Vault').h4,
-                            const SizedBox(width: 8),
-                            Observer(
-                              builder: (_) => SecondaryBadge(
-                                child: Text(
-                                  '${store.recordCount} records',
-                                ).xSmall,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Manage your personal information that is only visible to you.',
-                        ).muted.small,
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  if (editingSectionId != null)
-                    PrimaryButton(
+              const SizedBox(height: AppSpacing.xl),
+              Observer(
+                builder: (_) {
+                  final count = store.recordCount;
+                  final Widget primaryAction;
+                  if (editingSectionId != null) {
+                    primaryAction = PrimaryButton(
                       onPressed: () => setState(() => editingSectionId = null),
                       child: const Text('Done'),
-                    )
-                  else if (widget.editingShareId != null)
-                    PrimaryButton(
+                    );
+                  } else if (widget.editingShareId != null ||
+                      widget.shareFilterId != null) {
+                    primaryAction = PrimaryButton(
                       onPressed: () => context.go(AppRoutes.shares),
                       child: const Text('Done'),
-                    )
-                  else
-                    PrimaryButton(
+                    );
+                  } else {
+                    primaryAction = PrimaryButton(
                       density: ButtonDensity.icon,
                       onPressed: () =>
                           _showCreateOptionsSheet(context, store, authStore),
                       child: const Icon(BootstrapIcons.plus, size: 20),
-                    ),
-                ],
+                    );
+                  }
+                  return AppScreenHeader(
+                    title: 'Vault',
+                    badgeLabel: '$count ${count == 1 ? 'record' : 'records'}',
+                    subtitle:
+                        'Manage your personal information that is only visible to you.',
+                    actions: [primaryAction],
+                  );
+                },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               FilterBar<models.Record>(
                 controller: _tableController,
@@ -198,21 +189,15 @@ class _VaultScreenState extends State<VaultScreen> {
               }
 
               if (store.records.isEmpty && store.sections.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: horizontalPad,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(BootstrapIcons.barChart, size: 40).muted,
-                        const SizedBox(height: 12),
-                        const Text('No data').semiBold,
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Get started by creating a section or record.',
-                        ).muted.small,
-                      ],
-                    ),
+                return AppEmptyState(
+                  icon: BootstrapIcons.safe,
+                  title: 'Your vault is empty',
+                  subtitle:
+                      'Get started by creating a section or your first record.',
+                  action: PrimaryButton(
+                    onPressed: () =>
+                        _showCreateOptionsSheet(context, store, authStore),
+                    child: const Text('Create your first entry'),
                   ),
                 );
               }
@@ -1061,7 +1046,7 @@ class _VaultScreenState extends State<VaultScreen> {
                     return ListView.separated(
                       shrinkWrap: true,
                       itemCount: templatesStore.templates.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (_, index) {
                         final template = templatesStore.templates[index];
                         final sections =
@@ -1390,310 +1375,19 @@ class _VaultScreenState extends State<VaultScreen> {
     );
   }
 
+  // Record-create / duplicate moved to a 2-step bottom sheet
+  // (record_create_sheet.dart) so the form no longer overflows on phones.
   void _showCreateSheet(
     BuildContext context,
     VaultStore store,
     AuthStore authStore, {
     models.Record? initialRecord,
   }) {
-    store.clearError();
-    final keyCtrl = TextEditingController(
-      text: initialRecord != null ? '${initialRecord.key}_1' : '',
-    );
-    final valueCtrl = TextEditingController(text: initialRecord?.value ?? '');
-    final labelCtrl = TextEditingController(text: initialRecord?.label ?? '');
-    String selectedType = initialRecord?.type ?? 'text';
-    String selectedFormat = initialRecord?.format ?? 'default';
-    String? keyWarning;
-    String? suggestedKey;
-
-    String? initialRecordSectionId;
-    if (initialRecord != null) {
-      for (final sec in store.sections) {
-        if (sec.records.contains(initialRecord.id)) {
-          initialRecordSectionId = sec.id;
-          break;
-        }
-      }
-    }
-
-    void validateKey(String input, StateSetter setSheetState) {
-      if (input.isEmpty) {
-        setSheetState(() {
-          keyWarning = null;
-          suggestedKey = null;
-        });
-        return;
-      }
-
-      final exists = store.records.any((r) => r.key == input);
-      if (exists) {
-        final alt = _generateAlternativeKey(input, false, store);
-        setSheetState(() {
-          keyWarning = 'This key is already taken.';
-          suggestedKey = alt;
-        });
-      } else {
-        setSheetState(() {
-          keyWarning = null;
-          suggestedKey = null;
-        });
-      }
-    }
-
-    bool checkedOnStart = false;
-
-    openSheet(
+    openRecordCreateSheet(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            if (!checkedOnStart && keyCtrl.text.isNotEmpty) {
-              checkedOnStart = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                validateKey(keyCtrl.text, setSheetState);
-              });
-            }
-            return Observer(
-              builder: (context) {
-                final _ = store.errorMessage;
-                return Container(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        initialRecord != null
-                            ? 'Duplicate Record'
-                            : 'New Record',
-                      ).h4,
-                      const SizedBox(height: 4),
-                      Text(
-                        initialRecord != null
-                            ? 'Duplicate this record with a new unique key.'
-                            : 'Add a new key-value record to your workspace.',
-                      ).muted,
-                      const SizedBox(height: 20),
-
-                      const Text('Label').semiBold,
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: labelCtrl,
-                        placeholder: const Text('My Secret'),
-                      ),
-                      const SizedBox(height: 14),
-
-                      const Text('Key').semiBold,
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: keyCtrl,
-                        placeholder: const Text('api_secret_key'),
-                        inputFormatters: [KeyInputFormatter()],
-                        onChanged: (v) => validateKey(v, setSheetState),
-                      ),
-                      if (keyWarning != null) ...[
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              BootstrapIcons.exclamation,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.destructive,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                keyWarning!,
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.destructive,
-                                ),
-                              ).xSmall,
-                            ),
-                          ],
-                        ),
-                      ],
-                      if (suggestedKey != null) ...[
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              BootstrapIcons.lightbulb,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            const SizedBox(width: 6),
-                            const Text('Suggestion: ').small,
-                            GestureDetector(
-                              onTap: () {
-                                keyCtrl.text = suggestedKey!;
-                                validateKey(suggestedKey!, setSheetState);
-                              },
-                              child: Text(
-                                suggestedKey!,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ).semiBold.small,
-                            ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 14),
-
-                      const Text('Value').semiBold,
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: valueCtrl,
-                        placeholder: const Text('sk-1234...'),
-                      ),
-                      const SizedBox(height: 14),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Type').semiBold,
-                                const SizedBox(height: 6),
-                                Select<String>(
-                                  value: selectedType,
-                                  onChanged: (v) {
-                                    if (v != null) {
-                                      setSheetState(() => selectedType = v);
-                                    }
-                                  },
-                                  itemBuilder: (ctx, item) => Text(item),
-                                  popup: SelectPopup(
-                                    items: SelectItemList(
-                                      children: const [
-                                        SelectItemButton(
-                                          value: 'text',
-                                          child: Text('text'),
-                                        ),
-                                        SelectItemButton(
-                                          value: 'number',
-                                          child: Text('number'),
-                                        ),
-                                      ],
-                                    ),
-                                  ).call,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Hidden Value').semiBold,
-                                const SizedBox(height: 10),
-                                Switch(
-                                  value: selectedFormat == 'hidden',
-                                  onChanged: (checked) {
-                                    setSheetState(() {
-                                      selectedFormat = checked
-                                          ? 'hidden'
-                                          : 'default';
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      if (store.errorMessage != null) ...[
-                        Alert(
-                          destructive: true,
-                          leading: const Icon(BootstrapIcons.exclamation),
-                          title: const Text('Error'),
-                          content: Text(store.errorMessage!),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      PrimaryButton(
-                        onPressed: () async {
-                          if (keyCtrl.text.isEmpty ||
-                              valueCtrl.text.isEmpty ||
-                              labelCtrl.text.isEmpty) {
-                            return;
-                          }
-
-                          final keyInput = keyCtrl.text.trim();
-                          final exists = store.records.any(
-                            (r) => r.key == keyInput,
-                          );
-                          if (exists) {
-                            store.errorMessage = 'This key is already taken.';
-                            setSheetState(() {});
-                            return;
-                          }
-
-                          final ok = await store.createRecord(
-                            key: keyInput,
-                            value: valueCtrl.text,
-                            label: labelCtrl.text,
-                            type: selectedType,
-                            format: selectedFormat,
-                            user: authStore.userId,
-                            workspace: authStore.activeWorkspace ?? '',
-                          );
-                          if (ok && ctx.mounted) {
-                            if (initialRecordSectionId != null) {
-                              final newRecordId = store.records.first.id;
-                              final sec = store.sections.firstWhere(
-                                (s) => s.id == initialRecordSectionId,
-                              );
-                              final newRecs = List<String>.from(sec.records)
-                                ..add(newRecordId);
-                              await store.updateSection(sec.id, {
-                                'records': newRecs,
-                              });
-                            }
-                            if (ctx.mounted) {
-                              closeSheet(ctx);
-                              showToast(
-                                context: ctx,
-                                builder: (context, overlay) => SurfaceCard(
-                                  child: Basic(
-                                    leading: const Icon(
-                                      BootstrapIcons.check,
-                                      size: 16,
-                                    ),
-                                    title: Text(
-                                      initialRecord != null
-                                          ? 'Record duplicated successfully'
-                                          : 'Record created successfully',
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        child: Text(
-                          initialRecord != null ? 'Duplicate' : 'Create Record',
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-      position: OverlayPosition.bottom,
+      store: store,
+      authStore: authStore,
+      initialRecord: initialRecord,
     );
   }
 
@@ -2468,6 +2162,10 @@ class _RecordCardState extends State<_RecordCard> {
                         const SizedBox(width: 6),
                         const OutlineBadge(child: Text('hidden')),
                       ],
+                      if (widget.record.isAlias) ...[
+                        const SizedBox(width: 6),
+                        const OutlineBadge(child: Text('alias')),
+                      ],
                       if (!widget.isSelectableMode) ...[
                         const SizedBox(width: 8),
                         GhostButton(
@@ -2537,28 +2235,6 @@ class _RecordCardState extends State<_RecordCard> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class KeyInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text
-        .toLowerCase()
-        .replaceAll(' ', '_')
-        .replaceAll(RegExp(r'[^a-z0-9_]'), '');
-
-    int end = newValue.selection.end;
-    if (end > text.length) end = text.length;
-    if (end < 0) end = 0;
-
-    return TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: end),
     );
   }
 }

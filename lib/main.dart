@@ -10,6 +10,8 @@ import 'features/settings/store/settings_store.dart';
 import 'features/vault/store/vault_store.dart';
 import 'features/shares/store/shares_store.dart';
 import 'features/templates/store/templates_store.dart';
+import 'features/requests/store/requests_store.dart';
+import 'features/notifications/store/notifications_store.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +32,10 @@ class RevokedApp extends StatelessWidget {
         Provider<SettingsStore>(create: (_) => ServiceLocator.settingsStore),
         Provider<SharesStore>(create: (_) => ServiceLocator.sharesStore),
         Provider<TemplatesStore>(create: (_) => ServiceLocator.templatesStore),
+        Provider<RequestsStore>(create: (_) => ServiceLocator.requestsStore),
+        Provider<NotificationsStore>(
+          create: (_) => ServiceLocator.notificationsStore,
+        ),
       ],
       child: Observer(
         builder: (_) {

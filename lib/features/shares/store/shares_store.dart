@@ -47,6 +47,11 @@ abstract class _SharesStore with Store {
     required List<String> sections,
     required List<String> records,
     String status = 'active',
+    String? identityId,
+    String? password,
+    DateTime? expiresAt,
+    int? maxViews,
+    bool requireHandshake = false,
   }) async {
     isLoading = true;
     errorMessage = null;
@@ -59,6 +64,11 @@ abstract class _SharesStore with Store {
         sections: sections,
         records: records,
         status: status,
+        identityId: identityId,
+        password: password,
+        expiresAt: expiresAt,
+        maxViews: maxViews,
+        requireHandshake: requireHandshake,
       );
       shares.insert(0, link);
       return true;
@@ -76,7 +86,10 @@ abstract class _SharesStore with Store {
       final updated = await _repository.update(id, updates);
       final idx = shares.indexWhere((s) => s.id == id);
       if (idx != -1) {
-        shares[idx] = updated.copyWith(views: shares[idx].views);
+        // Preserve viewCount when patching: PocketBase returns the new state,
+        // but if our update didn't touch viewCount we still want the latest
+        // value the server sends.
+        shares[idx] = updated;
       }
       return true;
     } catch (e) {
@@ -99,7 +112,8 @@ abstract class _SharesStore with Store {
 
   Future<bool> isSlugTaken(String slug) => _repository.isSlugTaken(slug);
 
-  Future<String> generateAlternativeSlug(String baseSlug) => _repository.generateAlternativeSlug(baseSlug);
+  Future<String> generateAlternativeSlug(String baseSlug) =>
+      _repository.generateAlternativeSlug(baseSlug);
 
   @action
   void clearError() {

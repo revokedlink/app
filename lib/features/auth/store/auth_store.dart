@@ -66,7 +66,11 @@ abstract class _AuthStore with Store {
   }
 
   @action
-  Future<bool> register(String email, String password, String passwordConfirm) async {
+  Future<bool> register(
+    String email,
+    String password,
+    String passwordConfirm,
+  ) async {
     isLoading = true;
     errorMessage = null;
     try {
@@ -100,6 +104,10 @@ abstract class _AuthStore with Store {
     if (e.toString().contains('validation_')) {
       return 'Please check your input and try again';
     }
-    return e.toString().replaceAll('ApiException', '').replaceAll('Exception:', '').trim();
+    return e
+        .toString()
+        .replaceAll('ApiException', '')
+        .replaceAll('Exception:', '')
+        .trim();
   }
 }

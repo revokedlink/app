@@ -92,6 +92,11 @@ mixin _$SharesStore on _SharesStore, Store {
     required List<String> sections,
     required List<String> records,
     String status = 'active',
+    String? identityId,
+    String? password,
+    DateTime? expiresAt,
+    int? maxViews,
+    bool requireHandshake = false,
   }) {
     return _$createShareAsyncAction.run(
       () => super.createShare(
@@ -102,6 +107,11 @@ mixin _$SharesStore on _SharesStore, Store {
         sections: sections,
         records: records,
         status: status,
+        identityId: identityId,
+        password: password,
+        expiresAt: expiresAt,
+        maxViews: maxViews,
+        requireHandshake: requireHandshake,
       ),
     );
   }

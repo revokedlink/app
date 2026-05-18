@@ -21,9 +21,15 @@ class Template {
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       workspace: json['workspace'] as String? ?? '',
-      schema: json['schema'] is Map ? json['schema'] as Map<String, dynamic> : {},
-      created: DateTime.parse(json['created'] as String? ?? DateTime.now().toIso8601String()),
-      updated: DateTime.parse(json['updated'] as String? ?? DateTime.now().toIso8601String()),
+      schema: json['schema'] is Map
+          ? json['schema'] as Map<String, dynamic>
+          : {},
+      created: DateTime.parse(
+        json['created'] as String? ?? DateTime.now().toIso8601String(),
+      ),
+      updated: DateTime.parse(
+        json['updated'] as String? ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 

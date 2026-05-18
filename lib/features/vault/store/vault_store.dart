@@ -185,18 +185,21 @@ abstract class _VaultStore with Store {
 
       // Helper to generate a unique key in the current store state
       String makeUniqueKey(String baseKey, bool isSection) {
-        String key = baseKey.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_-]'), '_');
+        String key = baseKey.toLowerCase().replaceAll(
+          RegExp(r'[^a-z0-9_-]'),
+          '_',
+        );
         if (key.isEmpty) {
           key = isSection ? 'section' : 'key';
         }
-        
+
         final exists = isSection
             ? sections.any((s) => s.key == key)
             : records.any((r) => r.key == key);
         if (!exists) {
           return key;
         }
-        
+
         int counter = 1;
         while (true) {
           final candidate = '${key}_$counter';

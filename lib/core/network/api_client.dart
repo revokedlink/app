@@ -4,14 +4,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 
 /// Exception thrown when an API call fails.
+///
+/// `code` mirrors the stable error codes emitted by the backend's
+/// `appErrorResponse` helper (e.g. `link_password_required`,
+/// `handshake_invalid`, `request_completed`). Code is empty when the
+/// server returned a non-coded error (PocketBase's generic envelope).
 class ApiException implements Exception {
   final int statusCode;
   final String message;
+  final String code;
+  final Map<String, dynamic>? data;
 
-  ApiException(this.statusCode, this.message);
+  ApiException(this.statusCode, this.message, {this.code = '', this.data});
 
   @override
-  String toString() => 'ApiException($statusCode): $message';
+  String toString() =>
+      'ApiException($statusCode${code.isEmpty ? '' : ', $code'}): $message';
 }
 
 /// Represents an API response with both the decoded body and raw headers.
@@ -33,7 +41,7 @@ class ApiClient {
   Map<String, dynamic>? _userData;
 
   ApiClient({http.Client? httpClient})
-      : _httpClient = httpClient ?? http.Client();
+    : _httpClient = httpClient ?? http.Client();
 
   String get baseUrl => AppConfig.baseUrl;
   String? get authToken => _authToken;
@@ -68,16 +76,36 @@ class ApiClient {
     await prefs.remove(_userKey);
   }
 
-  Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        if (_authToken != null) 'Authorization': 'Bearer $_authToken',
-      };
+  Map<String, String> _buildHeaders([Map<String, String>? extra]) => {
+    'Content-Type': 'application/json',
+    if (_authToken != null) 'Authorization': 'Bearer $_authToken',
+    if (extra != null) ...extra,
+  };
 
   /// GET request.
   Future<dynamic> get(String path, {Map<String, String>? queryParams}) async {
-    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
-    final response = await _httpClient.get(uri, headers: _headers);
+    final uri = Uri.parse(
+      '$baseUrl$path',
+    ).replace(queryParameters: queryParams);
+    final response = await _httpClient.get(uri, headers: _buildHeaders());
     return _handleResponse(response);
+  }
+
+  /// GET request returning both body and headers.
+  Future<ApiResponse> getWithHeaders(
+    String path, {
+    Map<String, String>? queryParams,
+    Map<String, String>? headers,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl$path',
+    ).replace(queryParameters: queryParams);
+    final response = await _httpClient.get(
+      uri,
+      headers: _buildHeaders(headers),
+    );
+    final decodedBody = _handleResponse(response);
+    return ApiResponse(decodedBody, response.headers);
   }
 
   /// POST request.
@@ -87,11 +115,15 @@ class ApiClient {
   }
 
   /// POST request returning both body and headers.
-  Future<ApiResponse> postWithHeaders(String path, {Map<String, dynamic>? body}) async {
+  Future<ApiResponse> postWithHeaders(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+  }) async {
     final uri = Uri.parse('$baseUrl$path');
     final response = await _httpClient.post(
       uri,
-      headers: _headers,
+      headers: _buildHeaders(headers),
       body: body != null ? jsonEncode(body) : null,
     );
     final decodedBody = _handleResponse(response);
@@ -103,7 +135,7 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final response = await _httpClient.patch(
       uri,
-      headers: _headers,
+      headers: _buildHeaders(),
       body: body != null ? jsonEncode(body) : null,
     );
     return _handleResponse(response);
@@ -112,7 +144,7 @@ class ApiClient {
   /// DELETE request.
   Future<dynamic> delete(String path) async {
     final uri = Uri.parse('$baseUrl$path');
-    final response = await _httpClient.delete(uri, headers: _headers);
+    final response = await _httpClient.delete(uri, headers: _buildHeaders());
     if (response.statusCode == 204) return null;
     return _handleResponse(response);
   }
@@ -124,12 +156,26 @@ class ApiClient {
     }
 
     String message = 'Request failed';
+    String code = '';
+    Map<String, dynamic>? data;
     try {
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      message = body['message'] as String? ?? message;
-    } catch (_) {}
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        data = decoded;
+        // Custom app-error envelope: {"code": "...", "message": "...", "status": int}
+        if (decoded['code'] is String &&
+            (decoded['code'] as String).isNotEmpty) {
+          code = decoded['code'] as String;
+        }
+        if (decoded['message'] is String) {
+          message = decoded['message'] as String;
+        }
+      }
+    } catch (_) {
+      // body wasn't JSON; keep generic message
+    }
 
-    throw ApiException(response.statusCode, message);
+    throw ApiException(response.statusCode, message, code: code, data: data);
   }
 
   void dispose() {

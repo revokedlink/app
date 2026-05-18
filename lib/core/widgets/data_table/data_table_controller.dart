@@ -5,10 +5,7 @@ class DataTableColumn {
   final String value;
   final String label;
 
-  const DataTableColumn({
-    required this.value,
-    required this.label,
-  });
+  const DataTableColumn({required this.value, required this.label});
 }
 
 /// Represents an active filter in the data table.
@@ -76,12 +73,14 @@ class DataTableController<T> extends ChangeNotifier {
   /// Adds a new filter with a default column.
   void addFilter(String defaultColumn) {
     final newId = DateTime.now().microsecondsSinceEpoch.toString();
-    _filters.add(DataTableFilter(
-      id: newId,
-      column: defaultColumn,
-      operator: 'contains',
-      value: '',
-    ));
+    _filters.add(
+      DataTableFilter(
+        id: newId,
+        column: defaultColumn,
+        operator: 'contains',
+        value: '',
+      ),
+    );
     notifyListeners();
   }
 
@@ -92,7 +91,12 @@ class DataTableController<T> extends ChangeNotifier {
   }
 
   /// Updates an active filter's parameters.
-  void updateFilter(String id, {String? column, String? operator, String? value}) {
+  void updateFilter(
+    String id, {
+    String? column,
+    String? operator,
+    String? value,
+  }) {
     final index = _filters.indexWhere((f) => f.id == id);
     if (index != -1) {
       _filters[index] = _filters[index].copyWith(

@@ -21,10 +21,12 @@ class _AppShellState extends State<AppShell> {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith(AppRoutes.vault)) {
       _selectedKey = const ValueKey(0);
-    } else if (location.startsWith(AppRoutes.shares)) {
+    } else if (location.startsWith(AppRoutes.inbox)) {
       _selectedKey = const ValueKey(1);
-    } else if (location.startsWith(AppRoutes.settings)) {
+    } else if (location.startsWith(AppRoutes.shares)) {
       _selectedKey = const ValueKey(2);
+    } else if (location.startsWith(AppRoutes.settings)) {
+      _selectedKey = const ValueKey(3);
     }
   }
 
@@ -46,8 +48,10 @@ class _AppShellState extends State<AppShell> {
               if (key == const ValueKey(0)) {
                 context.go(AppRoutes.vault);
               } else if (key == const ValueKey(1)) {
-                context.go(AppRoutes.shares);
+                context.go(AppRoutes.inbox);
               } else if (key == const ValueKey(2)) {
+                context.go(AppRoutes.shares);
+              } else if (key == const ValueKey(3)) {
                 context.go(AppRoutes.settings);
               }
             },
@@ -67,11 +71,20 @@ class _AppShellState extends State<AppShell> {
                 selectedStyle: const ButtonStyle.secondary(
                   density: ButtonDensity.icon,
                 ),
-                label: const Text('Shares'),
-                child: const Icon(BootstrapIcons.share),
+                label: const Text('Inbox'),
+                child: const Icon(BootstrapIcons.inboxFill),
               ),
               NavigationItem(
                 key: const ValueKey(2),
+                style: const ButtonStyle.ghost(density: ButtonDensity.icon),
+                selectedStyle: const ButtonStyle.secondary(
+                  density: ButtonDensity.icon,
+                ),
+                label: const Text('Share'),
+                child: const Icon(BootstrapIcons.share),
+              ),
+              NavigationItem(
+                key: const ValueKey(3),
                 style: const ButtonStyle.ghost(density: ButtonDensity.icon),
                 selectedStyle: const ButtonStyle.secondary(
                   density: ButtonDensity.icon,

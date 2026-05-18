@@ -22,7 +22,11 @@ class AuthRepository {
   }
 
   /// Register a new user account.
-  Future<User> register(String email, String password, String passwordConfirm) async {
+  Future<User> register(
+    String email,
+    String password,
+    String passwordConfirm,
+  ) async {
     final data = await _api.post(
       '/api/collections/${AppConfig.usersCollection}/records',
       body: {

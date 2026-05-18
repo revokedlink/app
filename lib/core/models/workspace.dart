@@ -27,11 +27,7 @@ class Workspace {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'slug': slug,
-        'type': type,
-      };
+  Map<String, dynamic> toJson() => {'name': name, 'slug': slug, 'type': type};
 
   bool get isPersonal => type == 'personal';
   bool get isBusiness => type == 'business';
